@@ -15,7 +15,7 @@ struct ScrumView: View {
         NavigationStack {
             List(scrums)  { scrum in
                 NavigationLink {
-                    Text(scrum.title)
+                    ScrumDetail(scrum: scrum)
                 } label: {
                     CardView(scrum: scrum)
                         .listRowBackground(scrum.theme.mainColor)
