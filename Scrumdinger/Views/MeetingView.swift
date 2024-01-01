@@ -6,47 +6,55 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct MeetingView: View {
+    @Binding var scrum: DailyScrum
+    @StateObject var scrumTimer = ScrumTimer()
+    
+    private var player: AVPlayer { AVPlayer.sharedDingPlayer }
+    
+    private func startScrum() {
+        scrumTimer.reset(lengthInMinutes: scrum.lengthInMinutes, attendees: scrum.attendees)
+        scrumTimer.speakerChangedAction = { () -> Void in
+            player.seek(to: .zero)
+            player.play()
+        }
+        scrumTimer.startScrum()
+    }
+    
+    fileprivate func endScrum() {
+        scrumTimer.stopScrum()
+        let newHistory = History(attendees: scrum.attendees)
+        scrum.history.insert(newHistory, at: 0)
+    }
+    
     var body: some View {
-        VStack {
-            ProgressView(value: 5, total: 15)
-            HStack {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16.0)
+                .fill(scrum.theme.mainColor)
+            VStack {
+                MeetingHeaderView(secondsElapsed: scrumTimer.secondsElapsed, secondsRemaining: scrumTimer.secondsRemaining, theme: scrum.theme)
+                // Circle().strokeBorder(...) define stroke cirle
+                // Cirle() -> return solid circle
+                Circle()
+                    .strokeBorder(lineWidth: 24)
                 
-                VStack (alignment: .leading){
-                    Text("Seconds Elapsed")
-                        .font(.caption)
-                    Label("300", systemImage: "hourglass.tophalf.fill")
-                }
-                Spacer()
-                VStack(alignment: .trailing) {
-                    Text("Seconds Remaining")
-                        .font(.caption)
-                    Label("600", systemImage: "hourglass.bottomhalf.fill")
-                }
-                
+                MeetingFooterView(speakers: scrumTimer.speakers, skipAction: scrumTimer.skipSpeaker)
             }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Time remaining")
-            .accessibilityValue("10 minutes")
-            // Circle().strokeBorder(...) define stroke cirle
-            // Cirle() -> return solid circle
-            Circle()
-                .strokeBorder(lineWidth: 24)
-            
-            HStack {
-                Text("Speaker 1 of 3")
-                Spacer()
-                Button {
-                    print("button press")
-                } label: {
-                    Image(systemName: "forward.fill")
-                }.accessibilityLabel("Next speaker")
-            }
-        }.padding()
+        }
+        .padding()
+        .foregroundColor(scrum.theme.accentColor)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear{
+            startScrum()
+        }
+        .onDisappear {
+            endScrum()
+        }
     }
 }
 
 #Preview {
-    MeetingView()
+    MeetingView(scrum: .constant(DailyScrum.sampleData[0]))
 }
